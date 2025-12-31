@@ -56,7 +56,7 @@ export const getServerBackendUrl = () => {
     process.env.NEXT_PUBLIC_BACKEND_URL ||
     process.env.BACKEND_URL ||
     process.env.API_URL ||
-    "http://backend:8000"
+    "http://backend:1679"  // Using Docker service name for internal communication
   );
 };
 
@@ -73,9 +73,9 @@ export const FRONTEND_CONFIG = {
   /** Base URL for the frontend */
   BASE_URL:
     process.env.NEXT_PUBLIC_BASE_URL ||
-    (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"),
+    (typeof window !== "undefined" ? window.location.origin : "http://localhost:1678"),
   /** Server port */
-  PORT: process.env.PORT || "3000",
+  PORT: process.env.PORT || "1678",
 } as const;
 
 // ============================================================================

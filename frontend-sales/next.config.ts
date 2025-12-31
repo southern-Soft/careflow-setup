@@ -58,10 +58,7 @@ const nextConfig: NextConfig = {
     return {
       // Process before checking filesystem (highest priority)
       beforeFiles: [
-        {
-          source: "/api/proxy/:path*",
-          destination: `${apiUrl}/api/v1/:path*`,
-        },
+        // Note: /api/proxy is handled by API route handler, not rewrites
         {
           source: "/external-api/:path*",
           destination: `${apiUrl}/api/v1/:path*`,

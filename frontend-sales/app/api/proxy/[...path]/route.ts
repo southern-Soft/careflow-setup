@@ -16,7 +16,7 @@ async function proxyRequest(request: NextRequest, path: string[]) {
 
   // Construct destination URL - ensure it hits /api/v1 prefix
   const backendUrl = getServerBackendUrl().replace(/\/$/, ""); // Remove trailing slash if exists
-  const destUrl = `${backendUrl}/api/v1/${joinedPath}${joinedPath ? "/" : ""}${searchParams}`;
+  const destUrl = `${backendUrl}/api/v1/${joinedPath}${searchParams}`;  // Fixed: removed trailing slash
 
   console.log(`[Proxy] ${request.method} ${request.nextUrl.pathname}${searchParams} -> ${destUrl}`);
 
@@ -38,27 +38,57 @@ async function proxyRequest(request: NextRequest, path: string[]) {
     const options: RequestInit = {
       method: request.method,
       headers,
+      // Add timeout and better error handling
+      signal: AbortSignal.timeout(30000), // 30 second timeout
     };
 
     // Body for non-GET/HEAD requests
     if (!["GET", "HEAD"].includes(request.method)) {
-      options.body = await request.text();
+      const body = await request.text();
+      if (body) {
+        options.body = body;
+      }
     }
 
+    console.log(`[Proxy] Fetching: ${destUrl} with method: ${request.method}`);
     const response = await fetch(destUrl, options);
+    
+    if (!response.ok) {
+      console.error(`[Proxy] Backend returned error: ${response.status} ${response.statusText}`);
+    }
+    
     const data = await response.text();
+
+    // Return response with proper headers
+    const responseHeaders = new Headers();
+    responseHeaders.set("Content-Type", response.headers.get("content-type") || "application/json");
+    // Add CORS headers for browser
+    responseHeaders.set("Access-Control-Allow-Origin", "*");
+    responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+    responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
     return new NextResponse(data, {
       status: response.status,
-      headers: {
-        "Content-Type": response.headers.get("content-type") || "application/json",
-      },
+      headers: responseHeaders,
     });
   } catch (error: any) {
     console.error("[Proxy Error]", error?.message || error);
+    console.error("[Proxy Error] Stack:", error?.stack);
     return NextResponse.json(
-      { detail: "Backend connectivity error", error: error?.message ?? String(error) },
-      { status: 502 }
+      { 
+        detail: "Backend connectivity error", 
+        error: error?.message ?? String(error),
+        url: destUrl,
+        backendUrl: backendUrl
+      },
+      { 
+        status: 502,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        }
+      }
     );
   }
 }
