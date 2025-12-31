@@ -53,18 +53,28 @@ const nextConfig: NextConfig = {
   // URL rewrites for API masking and legacy URL support
   async rewrites() {
     const apiUrl = getServerBackendUrl();
+    console.log(`[NextConfig] Backend Proxy Target: ${apiUrl}`);
 
     return {
-      // Process before checking filesystem
+      // Process before checking filesystem (highest priority)
       beforeFiles: [
+        {
+          source: "/api/proxy/:path*",
+          destination: `${apiUrl}/api/v1/:path*`,
+        },
+        {
+          source: "/external-api/:path*",
+          destination: `${apiUrl}/api/v1/:path*`,
+        },
+      ],
+
+      // Process after checking filesystem
+      afterFiles: [
         // Legacy URL support
         { source: "/index", destination: "/" },
         { source: "/index.html", destination: "/" },
         { source: "/index.php", destination: "/" },
       ],
-
-      // Process after checking filesystem
-      afterFiles: [],
 
       // Fallback rewrites (when no file matches)
       fallback: [],
