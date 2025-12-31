@@ -1,0 +1,17 @@
+# Update backend/requirements.txt to add these production dependencies
+
+# Production WSGI server
+gunicorn==21.2.0
+
+# Redis for caching and sessions
+redis==5.0.1
+hiredis==2.3.2  # C parser for Redis protocol (faster)
+
+# Monitoring and logging
+python-json-logger==2.0.7
+
+# Database connection pooling
+psycopg2-binary==2.9.9
+
+# Performance
+orjson==3.9.10  # Faster JSON serialization

@@ -1,0 +1,195 @@
+version: '3.8'
+
+services:
+  # Clients Database
+  db-clients:
+    image: postgres:15-alpine
+    container_name: rmg_erp_db_clients
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: rmg_erp_clients
+    volumes:
+      - postgres_clients_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rmg_erp_clients"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp_network
+
+  # Samples Database
+  db-samples:
+    image: postgres:15-alpine
+    container_name: rmg_erp_db_samples
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: rmg_erp_samples
+    volumes:
+      - postgres_samples_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rmg_erp_samples"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp_network
+
+  # Users Database
+  db-users:
+    image: postgres:15-alpine
+    container_name: rmg_erp_db_users
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: rmg_erp_users
+    volumes:
+      - postgres_users_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rmg_erp_users"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp_network
+
+  # Orders Database
+  db-orders:
+    image: postgres:15-alpine
+    container_name: rmg_erp_db_orders
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: rmg_erp_orders
+    volumes:
+      - postgres_orders_data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rmg_erp_orders"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp_network
+
+  # Merchandiser Database (placeholder for future)
+  db-merchandiser:
+    image: postgres:15-alpine
+    container_name: rmg_erp_db_merchandiser
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: rmg_erp_merchandiser
+    volumes:
+      - postgres_merchandiser_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rmg_erp_merchandiser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: rmg_erp_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp_network
+
+  # FastAPI Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rmg_erp_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # PostgreSQL Base Settings
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_PORT=5432
+      # Multi-Database Host Configuration
+      - POSTGRES_HOST_CLIENTS=db-clients
+      - POSTGRES_HOST_SAMPLES=db-samples
+      - POSTGRES_HOST_USERS=db-users
+      - POSTGRES_HOST_ORDERS=db-orders
+      - POSTGRES_HOST_MERCHANDISER=db-merchandiser
+      # Multi-Database Names
+      - POSTGRES_DB_CLIENTS=rmg_erp_clients
+      - POSTGRES_DB_SAMPLES=rmg_erp_samples
+      - POSTGRES_DB_USERS=rmg_erp_users
+      - POSTGRES_DB_ORDERS=rmg_erp_orders
+      - POSTGRES_DB_MERCHANDISER=rmg_erp_merchandiser
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      # Security
+      - SECRET_KEY=your-secret-key-change-this-in-production-please-make-it-secure-rmg-erp-2024
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=10080
+      # CORS
+      - CORS_ORIGINS=*
+      - ENVIRONMENT=production
+    depends_on:
+      db-clients:
+        condition: service_healthy
+      db-samples:
+        condition: service_healthy
+      db-users:
+        condition: service_healthy
+      db-orders:
+        condition: service_healthy
+      db-merchandiser:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - erp_network
+
+networks:
+  erp_network:
+    driver: bridge
+
+volumes:
+  postgres_clients_data:
+  postgres_samples_data:
+  postgres_users_data:
+  postgres_orders_data:
+  postgres_merchandiser_data:
+  redis_data:

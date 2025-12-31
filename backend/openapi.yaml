@@ -1,0 +1,2168 @@
+openapi: 3.1.0
+info:
+  title: RMG ERP System
+  version: 1.0.0
+  description: |
+    Southern Apparels ERP System API
+    Multi-Database Architecture with 5 separate PostgreSQL databases
+    - Clients DB: Buyers, Suppliers, Contacts, Shipping, Banking
+    - Samples DB: Styles, Variants, Samples, TNA, Plans, Operations, Materials, Colors, Sizes
+    - Users DB: User management & Authentication
+    - Orders DB: Order management
+    - Merchandiser DB: Future merchandiser features
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+
+tags:
+  - name: auth
+    description: Authentication & Authorization
+  - name: buyers
+    description: Buyer management with contacts, shipping, banking
+  - name: suppliers
+    description: Supplier management
+  - name: contacts
+    description: Contact persons for buyers/suppliers
+  - name: samples
+    description: Styles, variants, samples, TNA, plans, operations, SMV
+  - name: orders
+    description: Order management
+  - name: materials
+    description: Material master data
+  - name: users
+    description: User CRUD operations
+  - name: operations
+    description: Operations master & SMV settings
+  - name: master-data
+    description: Colors & Sizes master data
+  - name: merchandiser
+    description: Merchandiser module (placeholder)
+  - name: health
+    description: System health checks
+
+paths:
+  # ============ AUTH ============
+  /api/v1/auth/register:
+    post:
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              email: "john.doe@rmg.com"
+              username: "john_doe"
+              full_name: "John Doe"
+              department: "Merchandising"
+              designation: "Senior Merchandiser"
+              department_access: ["samples", "orders"]
+              password: "SecurePass123"
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              example:
+                id: 1
+                email: "john.doe@rmg.com"
+                username: "john_doe"
+                full_name: "John Doe"
+                department: "Merchandising"
+                designation: "Senior Merchandiser"
+                department_access: ["samples", "orders"]
+                is_active: true
+                is_superuser: false
+                created_at: "2024-01-15T10:30:00Z"
+        '422': { description: Validation error }
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      summary: Login and get access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              username: "admin"
+              password: "admin123"
+      responses:
+        '200':
+          description: Token returned
+          content:
+            application/json:
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTcwNTMyMDAwMH0.abc123"
+                token_type: "bearer"
+        '401': { description: Invalid credentials }
+
+  /api/v1/auth/me:
+    get:
+      tags: [auth]
+      summary: Get current user info
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+          example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: User info
+          content:
+            application/json:
+              example:
+                id: 1
+                email: "admin@rmg.com"
+                username: "admin"
+                full_name: "System Admin"
+                department: "IT"
+                designation: "Administrator"
+                department_access: ["all"]
+                is_active: true
+                is_superuser: true
+                created_at: "2024-01-01T00:00:00Z"
+        '401': { description: Unauthorized }
+
+  # ============ BUYERS ============
+  /api/v1/buyers/:
+    get:
+      tags: [buyers]
+      summary: List all buyers
+      parameters:
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10000
+      responses:
+        '200':
+          description: List of buyers
+          content:
+            application/json:
+              example:
+                - id: 1
+                  buyer_name: "H&M"
+                  brand_name: "H&M"
+                  company_name: "H&M Hennes & Mauritz AB"
+                  head_office_country: "Sweden"
+                  email: "sourcing@hm.com"
+                  phone: "+46-8-796-5500"
+                  website: "https://www.hm.com"
+                  rating: 5
+                  status: "Active"
+                  created_at: "2024-01-01T00:00:00Z"
+                  updated_at: "2024-01-10T00:00:00Z"
+                - id: 2
+                  buyer_name: "ZARA"
+                  brand_name: "Zara"
+                  company_name: "Industria de Diseno Textil SA"
+                  head_office_country: "Spain"
+                  email: "buying@inditex.com"
+                  phone: "+34-981-185-400"
+                  website: "https://www.zara.com"
+                  rating: 5
+                  status: "Active"
+                  created_at: "2024-01-02T00:00:00Z"
+    post:
+      tags: [buyers]
+      summary: Create buyer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              buyer_name: "Primark"
+              brand_name: "Primark"
+              company_name: "Primark Stores Limited"
+              head_office_country: "Ireland"
+              email: "sourcing@primark.com"
+              phone: "+353-1-888-0500"
+              website: "https://www.primark.com"
+              rating: 4
+              status: "Active"
+      responses:
+        '201':
+          description: Buyer created
+          content:
+            application/json:
+              example:
+                id: 3
+                buyer_name: "Primark"
+                brand_name: "Primark"
+                company_name: "Primark Stores Limited"
+                head_office_country: "Ireland"
+                status: "Active"
+                created_at: "2024-01-15T10:30:00Z"
+        '422': { description: Validation error }
+
+  /api/v1/buyers/{buyer_id}:
+    get:
+      tags: [buyers]
+      summary: Get buyer by ID
+      parameters:
+        - name: buyer_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Buyer details
+          content:
+            application/json:
+              example:
+                id: 1
+                buyer_name: "H&M"
+                brand_name: "H&M"
+                company_name: "H&M Hennes & Mauritz AB"
+                head_office_country: "Sweden"
+                email: "sourcing@hm.com"
+                phone: "+46-8-796-5500"
+                website: "https://www.hm.com"
+                rating: 5
+                status: "Active"
+                created_at: "2024-01-01T00:00:00Z"
+        '404': { description: Not found }
+    put:
+      tags: [buyers]
+      summary: Update buyer
+      parameters:
+        - name: buyer_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              buyer_name: "H&M Updated"
+              rating: 5
+              status: "Active"
+      responses:
+        '200':
+          description: Buyer updated
+          content:
+            application/json:
+              example:
+                id: 1
+                buyer_name: "H&M Updated"
+                status: "Active"
+                updated_at: "2024-01-15T10:30:00Z"
+        '404': { description: Not found }
+    delete:
+      tags: [buyers]
+      summary: Delete buyer
+      parameters:
+        - name: buyer_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+        '404': { description: Not found }
+
+  /api/v1/buyers/contacts:
+    get:
+      tags: [buyers]
+      summary: List contacts (filter by buyer_id)
+      parameters:
+        - name: buyer_id
+          in: query
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: List of contacts
+          content:
+            application/json:
+              example:
+                - id: 1
+                  contact_person_name: "John Smith"
+                  company: "H&M"
+                  department: "Sourcing"
+                  designation: "Sourcing Manager"
+                  phone_number: "+46-123-456789"
+                  corporate_mail: "john.smith@hm.com"
+                  country: "Sweden"
+                  buyer_id: 1
+                  supplier_id: null
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [buyers]
+      summary: Create contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              contact_person_name: "Jane Doe"
+              company: "H&M"
+              department: "Quality"
+              designation: "QA Manager"
+              phone_number: "+46-987-654321"
+              corporate_mail: "jane.doe@hm.com"
+              country: "Sweden"
+              buyer_id: 1
+      responses:
+        '201':
+          description: Contact created
+          content:
+            application/json:
+              example:
+                id: 2
+                contact_person_name: "Jane Doe"
+                department: "Quality"
+                buyer_id: 1
+                created_at: "2024-01-15T10:30:00Z"
+
+  /api/v1/buyers/shipping:
+    get:
+      tags: [buyers]
+      summary: List shipping info
+      parameters:
+        - name: buyer_id
+          in: query
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: List of shipping info
+          content:
+            application/json:
+              example:
+                - id: 1
+                  buyer_id: 1
+                  buyer_name: "H&M"
+                  brand_name: "H&M"
+                  company_name: "H&M Hennes & Mauritz AB"
+                  destination_country: "Germany"
+                  destination_country_code: "DE"
+                  destination_port: "Hamburg"
+                  place_of_delivery: "Hamburg Distribution Center"
+                  destination_code: "HAM-DC01"
+                  warehouse_no: "WH-001"
+                  address: "Hauptstrasse 123, Hamburg"
+                  incoterm: "FOB"
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [buyers]
+      summary: Create shipping info
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              buyer_id: 1
+              brand_name: "H&M"
+              company_name: "H&M Hennes & Mauritz AB"
+              destination_country: "Netherlands"
+              destination_country_code: "NL"
+              destination_port: "Rotterdam"
+              place_of_delivery: "Rotterdam DC"
+              destination_code: "ROT-DC02"
+              warehouse_no: "WH-002"
+              address: "Haven 123, Rotterdam"
+              incoterm: "CIF"
+      responses:
+        '201':
+          description: Shipping info created
+          content:
+            application/json:
+              example:
+                id: 2
+                buyer_id: 1
+                destination_port: "Rotterdam"
+                incoterm: "CIF"
+                created_at: "2024-01-15T10:30:00Z"
+
+  /api/v1/buyers/banking:
+    get:
+      tags: [buyers]
+      summary: List banking info
+      responses:
+        '200':
+          description: List of banking info
+          content:
+            application/json:
+              example:
+                - id: 1
+                  client_name: "H&M"
+                  country: "Sweden"
+                  bank_name: "Nordea Bank"
+                  sort_code: "NDEASESS"
+                  swift_code: "NDEASESS"
+                  account_number: "1234567890"
+                  currency: "EUR"
+                  account_type: "Business"
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [buyers]
+      summary: Create banking info
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              client_name: "Zara"
+              country: "Spain"
+              bank_name: "Santander"
+              sort_code: "BSCHESMM"
+              swift_code: "BSCHESMM"
+              account_number: "9876543210"
+              currency: "EUR"
+              account_type: "Business"
+      responses:
+        '201':
+          description: Banking info created
+          content:
+            application/json:
+              example:
+                id: 2
+                client_name: "Zara"
+                bank_name: "Santander"
+                created_at: "2024-01-15T10:30:00Z"
+
+  /api/v1/buyers/banking/{banking_id}:
+    delete:
+      tags: [buyers]
+      summary: Delete banking info
+      parameters:
+        - name: banking_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+        '404': { description: Not found }
+
+  # ============ SUPPLIERS ============
+  /api/v1/suppliers/:
+    get:
+      tags: [suppliers]
+      summary: List all suppliers
+      responses:
+        '200':
+          description: List of suppliers
+          content:
+            application/json:
+              example:
+                - id: 1
+                  supplier_name: "ABC Yarns Ltd"
+                  company_name: "ABC Yarns Limited"
+                  supplier_type: "Yarn"
+                  contact_person: "Li Wei"
+                  email: "li.wei@abcyarns.com"
+                  phone: "+86-21-1234-5678"
+                  country: "China"
+                  brand_name: "ABC"
+                  head_office_country: "China"
+                  website: "https://www.abcyarns.com"
+                  tax_id: "CN123456789"
+                  rating: 4
+                  created_at: "2024-01-01T00:00:00Z"
+                - id: 2
+                  supplier_name: "Global Trims"
+                  company_name: "Global Trims Inc"
+                  supplier_type: "Trims"
+                  country: "India"
+                  rating: 5
+                  created_at: "2024-01-02T00:00:00Z"
+    post:
+      tags: [suppliers]
+      summary: Create supplier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              supplier_name: "Premium Fabrics"
+              company_name: "Premium Fabrics Co Ltd"
+              supplier_type: "Fabric"
+              contact_person: "Chen Ming"
+              email: "chen@premiumfabrics.com"
+              phone: "+886-2-1234567"
+              country: "Taiwan"
+              brand_name: "PremFab"
+              head_office_country: "Taiwan"
+              website: "https://www.premiumfabrics.com"
+              tax_id: "TW987654321"
+              rating: 5
+      responses:
+        '201':
+          description: Supplier created
+          content:
+            application/json:
+              example:
+                id: 3
+                supplier_name: "Premium Fabrics"
+                supplier_type: "Fabric"
+                country: "Taiwan"
+                created_at: "2024-01-15T10:30:00Z"
+
+  /api/v1/suppliers/{supplier_id}:
+    get:
+      tags: [suppliers]
+      summary: Get supplier by ID
+      parameters:
+        - name: supplier_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Supplier details
+          content:
+            application/json:
+              example:
+                id: 1
+                supplier_name: "ABC Yarns Ltd"
+                company_name: "ABC Yarns Limited"
+                supplier_type: "Yarn"
+                contact_person: "Li Wei"
+                email: "li.wei@abcyarns.com"
+                country: "China"
+                rating: 4
+                created_at: "2024-01-01T00:00:00Z"
+        '404': { description: Not found }
+    put:
+      tags: [suppliers]
+      summary: Update supplier
+      parameters:
+        - name: supplier_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              contact_person: "Wang Wei"
+              phone: "+86-21-8765-4321"
+              rating: 5
+      responses:
+        '200':
+          description: Supplier updated
+          content:
+            application/json:
+              example:
+                id: 1
+                supplier_name: "ABC Yarns Ltd"
+                contact_person: "Wang Wei"
+                rating: 5
+                updated_at: "2024-01-15T10:30:00Z"
+    delete:
+      tags: [suppliers]
+      summary: Delete supplier
+      parameters:
+        - name: supplier_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ CONTACTS ============
+  /api/v1/contacts/:
+    get:
+      tags: [contacts]
+      summary: List all contacts
+      responses:
+        '200':
+          description: List of contacts
+          content:
+            application/json:
+              example:
+                - id: 1
+                  contact_person_name: "John Smith"
+                  company: "H&M"
+                  department: "Sourcing"
+                  designation: "Sourcing Manager"
+                  phone_number: "+46-123-456789"
+                  corporate_mail: "john.smith@hm.com"
+                  country: "Sweden"
+                  buyer_id: 1
+                  supplier_id: null
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [contacts]
+      summary: Create contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              contact_person_name: "Mike Chen"
+              company: "ABC Yarns"
+              department: "Sales"
+              designation: "Sales Manager"
+              phone_number: "+86-21-5555-1234"
+              corporate_mail: "mike.chen@abcyarns.com"
+              country: "China"
+              supplier_id: 1
+      responses:
+        '201':
+          description: Contact created
+          content:
+            application/json:
+              example:
+                id: 3
+                contact_person_name: "Mike Chen"
+                supplier_id: 1
+                created_at: "2024-01-15T10:30:00Z"
+
+  /api/v1/contacts/{contact_id}:
+    get:
+      tags: [contacts]
+      summary: Get contact by ID
+      parameters:
+        - name: contact_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Contact details
+          content:
+            application/json:
+              example:
+                id: 1
+                contact_person_name: "John Smith"
+                company: "H&M"
+                department: "Sourcing"
+                designation: "Sourcing Manager"
+                phone_number: "+46-123-456789"
+                corporate_mail: "john.smith@hm.com"
+                country: "Sweden"
+                buyer_id: 1
+                created_at: "2024-01-01T00:00:00Z"
+        '404': { description: Not found }
+    put:
+      tags: [contacts]
+      summary: Update contact
+      parameters:
+        - name: contact_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              designation: "Senior Sourcing Manager"
+              phone_number: "+46-123-456999"
+      responses:
+        '200':
+          description: Contact updated
+          content:
+            application/json:
+              example:
+                id: 1
+                contact_person_name: "John Smith"
+                designation: "Senior Sourcing Manager"
+    delete:
+      tags: [contacts]
+      summary: Delete contact
+      parameters:
+        - name: contact_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ SAMPLES - STYLES ============
+  /api/v1/samples/styles:
+    get:
+      tags: [samples]
+      summary: List all styles
+      responses:
+        '200':
+          description: List of styles
+          content:
+            application/json:
+              example:
+                - id: 1
+                  buyer_id: 1
+                  style_name: "Classic Polo"
+                  style_id: "STY-2024-001"
+                  product_category: "Knit"
+                  product_type: "Polo Shirt"
+                  customs_customer_group: "Menswear"
+                  type_of_construction: "Single Jersey"
+                  gauge: "18GG"
+                  style_description: "Classic fit polo shirt with ribbed collar"
+                  is_set: false
+                  set_piece_count: null
+                  created_at: "2024-01-01T00:00:00Z"
+                - id: 2
+                  buyer_id: 1
+                  style_name: "Cable Sweater"
+                  style_id: "STY-2024-002"
+                  product_category: "Knit"
+                  product_type: "Sweater"
+                  gauge: "7GG"
+                  is_set: false
+                  created_at: "2024-01-02T00:00:00Z"
+    post:
+      tags: [samples]
+      summary: Create style
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              buyer_id: 1
+              style_name: "V-Neck Cardigan"
+              style_id: "STY-2024-003"
+              product_category: "Knit"
+              product_type: "Cardigan"
+              customs_customer_group: "Womenswear"
+              type_of_construction: "Full Milano"
+              gauge: "12GG"
+              style_description: "V-neck cardigan with button front"
+              is_set: false
+      responses:
+        '201':
+          description: Style created
+          content:
+            application/json:
+              example:
+                id: 3
+                buyer_id: 1
+                style_name: "V-Neck Cardigan"
+                style_id: "STY-2024-003"
+                created_at: "2024-01-15T10:30:00Z"
+
+  /api/v1/samples/styles/{style_id}:
+    get:
+      tags: [samples]
+      summary: Get style by ID
+      parameters:
+        - name: style_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Style details
+          content:
+            application/json:
+              example:
+                id: 1
+                buyer_id: 1
+                style_name: "Classic Polo"
+                style_id: "STY-2024-001"
+                product_category: "Knit"
+                product_type: "Polo Shirt"
+                gauge: "18GG"
+                is_set: false
+                created_at: "2024-01-01T00:00:00Z"
+        '404': { description: Not found }
+    put:
+      tags: [samples]
+      summary: Update style
+      parameters:
+        - name: style_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              style_description: "Updated description"
+              gauge: "16GG"
+      responses:
+        '200':
+          description: Style updated
+    delete:
+      tags: [samples]
+      summary: Delete style
+      parameters:
+        - name: style_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ SAMPLES - STYLE VARIANTS ============
+  /api/v1/samples/style-variants:
+    get:
+      tags: [samples]
+      summary: List style variants (filter by style_summary_id)
+      parameters:
+        - name: style_summary_id
+          in: query
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: List of variants
+          content:
+            application/json:
+              example:
+                - id: 1
+                  style_summary_id: 1
+                  style_name: "Classic Polo"
+                  style_id: "STY-2024-001"
+                  colour_name: "Navy Blue"
+                  colour_code: "NVY-001"
+                  colour_ref: "Pantone 19-4026"
+                  is_multicolor: false
+                  display_name: "Classic Polo - Navy Blue"
+                  piece_name: null
+                  sizes: ["S", "M", "L", "XL"]
+                  style_category: "Polo Shirt"
+                  gauge: "18GG"
+                  color_parts: null
+                  full_color_description: "Navy Blue (Pantone 19-4026)"
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [samples]
+      summary: Create style variant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              style_summary_id: 1
+              style_name: "Classic Polo"
+              style_id: "STY-2024-001"
+              colour_name: "Forest Green"
+              colour_code: "FGR-001"
+              colour_ref: "Pantone 18-5718"
+              is_multicolor: false
+              display_name: "Classic Polo - Forest Green"
+              sizes: ["S", "M", "L", "XL", "XXL"]
+      responses:
+        '201':
+          description: Variant created
+          content:
+            application/json:
+              example:
+                id: 2
+                style_summary_id: 1
+                colour_name: "Forest Green"
+                created_at: "2024-01-15T10:30:00Z"
+
+  /api/v1/samples/style-variants/{variant_id}:
+    get:
+      tags: [samples]
+      summary: Get variant by ID
+      parameters:
+        - name: variant_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Variant details
+          content:
+            application/json:
+              example:
+                id: 1
+                style_summary_id: 1
+                style_name: "Classic Polo"
+                style_id: "STY-2024-001"
+                colour_name: "Navy Blue"
+                colour_code: "NVY-001"
+                is_multicolor: false
+                sizes: ["S", "M", "L", "XL"]
+                created_at: "2024-01-01T00:00:00Z"
+        '404': { description: Not found }
+    put:
+      tags: [samples]
+      summary: Update variant
+      parameters:
+        - name: variant_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              colour_name: "Dark Navy"
+              sizes: ["XS", "S", "M", "L", "XL", "XXL"]
+      responses:
+        '200':
+          description: Variant updated
+    delete:
+      tags: [samples]
+      summary: Delete variant
+      parameters:
+        - name: variant_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ SAMPLES - MAIN ============
+  /api/v1/samples/:
+    get:
+      tags: [samples]
+      summary: List all samples
+      responses:
+        '200':
+          description: List of samples
+          content:
+            application/json:
+              example:
+                - id: 1
+                  sample_id: "SAM-2024-001"
+                  buyer_id: 1
+                  buyer_name: "H&M"
+                  style_id: 1
+                  style_name: "Classic Polo"
+                  sample_type: "Development"
+                  sample_description: "Initial development sample"
+                  item: "Polo Shirt"
+                  gauge: "18GG"
+                  worksheet_rcv_date: "2024-01-01"
+                  yarn_rcv_date: "2024-01-05"
+                  required_date: "2024-01-20"
+                  color: "Navy Blue"
+                  assigned_designer: "John Designer"
+                  required_sample_quantity: 3
+                  round: 1
+                  notes: "First round sample"
+                  submit_status: "Pending"
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [samples]
+      summary: Create sample
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              sample_id: "SAM-2024-002"
+              buyer_id: 1
+              style_id: 1
+              sample_type: "Salesman"
+              sample_description: "Salesman sample for buyer meeting"
+              item: "Polo Shirt"
+              gauge: "18GG"
+              worksheet_rcv_date: "2024-01-10"
+              yarn_rcv_date: "2024-01-12"
+              required_date: "2024-01-25"
+              color: "White"
+              assigned_designer: "Jane Designer"
+              required_sample_quantity: 5
+              round: 1
+              notes: "Urgent request"
+              submit_status: "In Progress"
+      responses:
+        '201':
+          description: Sample created
+          content:
+            application/json:
+              example:
+                id: 2
+                sample_id: "SAM-2024-002"
+                sample_type: "Salesman"
+                submit_status: "In Progress"
+                created_at: "2024-01-15T10:30:00Z"
+
+  /api/v1/samples/{sample_id}:
+    get:
+      tags: [samples]
+      summary: Get sample by ID
+      parameters:
+        - name: sample_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Sample details
+          content:
+            application/json:
+              example:
+                id: 1
+                sample_id: "SAM-2024-001"
+                buyer_id: 1
+                buyer_name: "H&M"
+                style_id: 1
+                style_name: "Classic Polo"
+                sample_type: "Development"
+                gauge: "18GG"
+                color: "Navy Blue"
+                round: 1
+                submit_status: "Pending"
+                created_at: "2024-01-01T00:00:00Z"
+        '404': { description: Not found }
+    put:
+      tags: [samples]
+      summary: Update sample
+      parameters:
+        - name: sample_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              submit_status: "Submitted"
+              notes: "Submitted to buyer on 2024-01-20"
+      responses:
+        '200':
+          description: Sample updated
+    delete:
+      tags: [samples]
+      summary: Delete sample
+      parameters:
+        - name: sample_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  /api/v1/samples/by-sample-id/{sample_id_str}:
+    get:
+      tags: [samples]
+      summary: Get sample by sample ID string
+      parameters:
+        - name: sample_id_str
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "SAM-2024-001"
+      responses:
+        '200':
+          description: Sample details
+          content:
+            application/json:
+              example:
+                id: 1
+                sample_id: "SAM-2024-001"
+                buyer_name: "H&M"
+                style_name: "Classic Polo"
+                submit_status: "Pending"
+        '404': { description: Not found }
+
+  # ============ SAMPLES - REQUIRED MATERIALS ============
+  /api/v1/samples/required-materials:
+    get:
+      tags: [samples]
+      summary: List required materials
+      parameters:
+        - name: style_variant_id
+          in: query
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: List of materials
+          content:
+            application/json:
+              example:
+                - id: 1
+                  style_variant_id: 1
+                  style_name: "Classic Polo"
+                  style_id: "STY-2024-001"
+                  material: "Cotton Yarn 30/2"
+                  uom: "KG"
+                  consumption_per_piece: 0.35
+                  converted_uom: "LBS"
+                  converted_consumption: 0.77
+                  remarks: "Body yarn"
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [samples]
+      summary: Create required material
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              style_variant_id: 1
+              style_name: "Classic Polo"
+              style_id: "STY-2024-001"
+              material: "Rib Yarn 40/2"
+              uom: "KG"
+              consumption_per_piece: 0.05
+              converted_uom: "LBS"
+              converted_consumption: 0.11
+              remarks: "Collar and cuff"
+      responses:
+        '201':
+          description: Material created
+          content:
+            application/json:
+              example:
+                id: 2
+                material: "Rib Yarn 40/2"
+                created_at: "2024-01-15T10:30:00Z"
+
+  /api/v1/samples/required-materials/{material_id}:
+    get:
+      tags: [samples]
+      summary: Get material by ID
+      parameters:
+        - name: material_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Material details
+        '404': { description: Not found }
+    put:
+      tags: [samples]
+      summary: Update material
+      parameters:
+        - name: material_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              consumption_per_piece: 0.38
+              remarks: "Updated consumption"
+      responses:
+        '200':
+          description: Material updated
+    delete:
+      tags: [samples]
+      summary: Delete material
+      parameters:
+        - name: material_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ SAMPLES - TNA ============
+  /api/v1/samples/tna:
+    get:
+      tags: [samples]
+      summary: List TNA records
+      responses:
+        '200':
+          description: List of TNA records
+          content:
+            application/json:
+              example:
+                - id: 1
+                  sample_id: "SAM-2024-001"
+                  buyer_name: "H&M"
+                  style_name: "Classic Polo"
+                  sample_type: "Development"
+                  sample_description: "Initial development"
+                  item: "Polo Shirt"
+                  gauge: "18GG"
+                  worksheet_rcv_date: "2024-01-01"
+                  yarn_rcv_date: "2024-01-05"
+                  required_date: "2024-01-20"
+                  color: "Navy Blue"
+                  piece_name: "Front Panel"
+                  notes: "Track timeline"
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [samples]
+      summary: Create TNA record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              sample_id: "SAM-2024-001"
+              buyer_name: "H&M"
+              style_name: "Classic Polo"
+              sample_type: "Development"
+              item: "Polo Shirt"
+              gauge: "18GG"
+              worksheet_rcv_date: "2024-01-01"
+              yarn_rcv_date: "2024-01-05"
+              required_date: "2024-01-20"
+              color: "Navy Blue"
+              piece_name: "Back Panel"
+      responses:
+        '201':
+          description: TNA created
+
+  /api/v1/samples/tna/{tna_id}:
+    put:
+      tags: [samples]
+      summary: Update TNA
+      parameters:
+        - name: tna_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              yarn_rcv_date: "2024-01-06"
+              notes: "Yarn received one day late"
+      responses:
+        '200':
+          description: TNA updated
+    delete:
+      tags: [samples]
+      summary: Delete TNA
+      parameters:
+        - name: tna_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  /api/v1/samples/tna/{sample_id}:
+    get:
+      tags: [samples]
+      summary: Get TNA by sample ID
+      parameters:
+        - name: sample_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "SAM-2024-001"
+      responses:
+        '200':
+          description: TNA details
+        '404': { description: Not found }
+
+  # ============ SAMPLES - PLAN ============
+  /api/v1/samples/plan:
+    get:
+      tags: [samples]
+      summary: List plan records
+      responses:
+        '200':
+          description: List of plans
+          content:
+            application/json:
+              example:
+                - id: 1
+                  sample_id: "SAM-2024-001"
+                  buyer_name: "H&M"
+                  style_name: "Classic Polo"
+                  sample_type: "Development"
+                  sample_description: "Development plan"
+                  item: "Polo Shirt"
+                  gauge: "18GG"
+                  worksheet_rcv_date: "2024-01-01"
+                  yarn_rcv_date: "2024-01-05"
+                  required_date: "2024-01-20"
+                  color: "Navy Blue"
+                  piece_name: "Complete"
+                  assigned_designer: "John Designer"
+                  required_sample_quantity: 3
+                  round: 1
+                  notes: "Priority sample"
+                  submit_status: "Planned"
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [samples]
+      summary: Create plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              sample_id: "SAM-2024-002"
+              buyer_name: "H&M"
+              style_name: "Classic Polo"
+              sample_type: "Salesman"
+              item: "Polo Shirt"
+              gauge: "18GG"
+              required_date: "2024-01-25"
+              color: "White"
+              assigned_designer: "Jane Designer"
+              required_sample_quantity: 5
+              round: 1
+      responses:
+        '201':
+          description: Plan created
+
+  /api/v1/samples/plan/{sample_id}:
+    get:
+      tags: [samples]
+      summary: Get plan by sample ID
+      parameters:
+        - name: sample_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "SAM-2024-001"
+      responses:
+        '200':
+          description: Plan details
+        '404': { description: Not found }
+
+  # ============ SAMPLES - OPERATIONS MASTER ============
+  /api/v1/samples/operations-master:
+    get:
+      tags: [samples]
+      summary: List operation types
+      responses:
+        '200':
+          description: List of operations
+          content:
+            application/json:
+              example:
+                - id: 1
+                  operation_type: "Knitting"
+                  operation_name: "Body Knitting"
+                  created_at: "2024-01-01T00:00:00Z"
+                - id: 2
+                  operation_type: "Linking"
+                  operation_name: "Collar Linking"
+                  created_at: "2024-01-01T00:00:00Z"
+                - id: 3
+                  operation_type: "Finishing"
+                  operation_name: "Steam Press"
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [samples]
+      summary: Create operation type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              operation_type: "Sewing"
+              operation_name: "Button Attach"
+      responses:
+        '201':
+          description: Operation created
+          content:
+            application/json:
+              example:
+                id: 4
+                operation_type: "Sewing"
+                operation_name: "Button Attach"
+                created_at: "2024-01-15T10:30:00Z"
+
+  /api/v1/samples/operations-master/{operation_id}:
+    put:
+      tags: [samples]
+      summary: Update operation type
+      parameters:
+        - name: operation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              operation_name: "Full Body Knitting"
+      responses:
+        '200':
+          description: Operation updated
+    delete:
+      tags: [samples]
+      summary: Delete operation type
+      parameters:
+        - name: operation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ SAMPLES - SAMPLE OPERATIONS ============
+  /api/v1/samples/operations:
+    get:
+      tags: [samples]
+      summary: List sample operations
+      responses:
+        '200':
+          description: List of operations
+          content:
+            application/json:
+              example:
+                - id: 1
+                  sample_id: 1
+                  operation_type: "Knitting"
+                  name_of_operation: "Body Knitting"
+                  number_of_operation: 1
+                  size: "M"
+                  duration: 45.5
+                  total_duration: 45.5
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [samples]
+      summary: Create sample operation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              sample_id: 1
+              operation_type: "Linking"
+              name_of_operation: "Collar Linking"
+              number_of_operation: 2
+              size: "M"
+              duration: 12.5
+              total_duration: 12.5
+      responses:
+        '201':
+          description: Operation created
+
+  /api/v1/samples/operations/{operation_id}:
+    get:
+      tags: [samples]
+      summary: Get operation by ID
+      parameters:
+        - name: operation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Operation details
+        '404': { description: Not found }
+    put:
+      tags: [samples]
+      summary: Update operation
+      parameters:
+        - name: operation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              duration: 48.0
+              total_duration: 48.0
+      responses:
+        '200':
+          description: Operation updated
+    delete:
+      tags: [samples]
+      summary: Delete operation
+      parameters:
+        - name: operation_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ SAMPLES - SMV ============
+  /api/v1/samples/smv:
+    get:
+      tags: [samples]
+      summary: List SMV calculations
+      responses:
+        '200':
+          description: List of SMV
+          content:
+            application/json:
+              example:
+                - id: 1
+                  sample_id: "SAM-2024-001"
+                  buyer_name: "H&M"
+                  style_name: "Classic Polo"
+                  category: "Polo Shirt"
+                  gauge: "18GG"
+                  total_smv: 25.5
+                  operations: [
+                    {"operation": "Body Knitting", "smv": 15.0},
+                    {"operation": "Linking", "smv": 5.5},
+                    {"operation": "Finishing", "smv": 5.0}
+                  ]
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [samples]
+      summary: Create SMV calculation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              sample_id: "SAM-2024-002"
+              buyer_name: "H&M"
+              style_name: "Cable Sweater"
+              category: "Sweater"
+              gauge: "7GG"
+              total_smv: 45.0
+              operations: [
+                {"operation": "Body Knitting", "smv": 30.0},
+                {"operation": "Linking", "smv": 8.0},
+                {"operation": "Finishing", "smv": 7.0}
+              ]
+      responses:
+        '201':
+          description: SMV created
+
+  /api/v1/samples/smv/{sample_id}:
+    get:
+      tags: [samples]
+      summary: Get SMV by sample ID
+      parameters:
+        - name: sample_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "SAM-2024-001"
+      responses:
+        '200':
+          description: SMV details
+        '404': { description: Not found }
+
+  # ============ ORDERS ============
+  /api/v1/orders/:
+    get:
+      tags: [orders]
+      summary: List all orders
+      responses:
+        '200':
+          description: List of orders
+          content:
+            application/json:
+              example:
+                - id: 1
+                  order_no: "ORD-2024-001"
+                  style_name: "Classic Polo"
+                  buyer_id: 1
+                  style_id: 1
+                  season: "SS24"
+                  order_category: "Main Order"
+                  sales_contract: "SC-2024-001"
+                  scl_po: "PO-12345"
+                  fob: 12.50
+                  note: "First shipment"
+                  product_category: "Knit"
+                  style_description: "Classic fit polo"
+                  gauge: "18GG"
+                  is_set: false
+                  order_quantity: 5000
+                  unit_price: 12.50
+                  total_value: 62500.00
+                  order_date: "2024-01-01"
+                  delivery_date: "2024-03-15"
+                  shipment_date: "2024-03-10"
+                  order_status: "Confirmed"
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [orders]
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              order_no: "ORD-2024-002"
+              style_name: "Cable Sweater"
+              buyer_id: 1
+              style_id: 2
+              season: "FW24"
+              order_category: "Main Order"
+              sales_contract: "SC-2024-002"
+              scl_po: "PO-12346"
+              fob: 25.00
+              product_category: "Knit"
+              gauge: "7GG"
+              is_set: false
+              order_quantity: 3000
+              unit_price: 25.00
+              total_value: 75000.00
+              order_date: "2024-01-15"
+              delivery_date: "2024-04-30"
+              order_status: "Pending"
+      responses:
+        '201':
+          description: Order created
+
+  /api/v1/orders/{order_id}:
+    get:
+      tags: [orders]
+      summary: Get order by ID
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Order details
+        '404': { description: Not found }
+    put:
+      tags: [orders]
+      summary: Update order
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              order_status: "In Production"
+              note: "Production started"
+      responses:
+        '200':
+          description: Order updated
+    delete:
+      tags: [orders]
+      summary: Delete order
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ MATERIALS ============
+  /api/v1/materials/:
+    get:
+      tags: [materials]
+      summary: List all materials
+      responses:
+        '200':
+          description: List of materials
+          content:
+            application/json:
+              example:
+                - id: 1
+                  material_name: "Cotton Yarn 30/2"
+                  uom: "KG"
+                  material_category: "Yarn"
+                  description: "100% Cotton combed yarn"
+                  created_at: "2024-01-01T00:00:00Z"
+                - id: 2
+                  material_name: "Polyester Thread"
+                  uom: "Cone"
+                  material_category: "Thread"
+                  description: "High strength sewing thread"
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [materials]
+      summary: Create material
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              material_name: "Merino Wool Yarn"
+              uom: "KG"
+              material_category: "Yarn"
+              description: "100% Merino wool yarn 28/2"
+      responses:
+        '201':
+          description: Material created
+
+  /api/v1/materials/{material_id}:
+    get:
+      tags: [materials]
+      summary: Get material by ID
+      parameters:
+        - name: material_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Material details
+        '404': { description: Not found }
+    put:
+      tags: [materials]
+      summary: Update material
+      parameters:
+        - name: material_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              description: "Updated description"
+      responses:
+        '200':
+          description: Material updated
+    delete:
+      tags: [materials]
+      summary: Delete material
+      parameters:
+        - name: material_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ USERS ============
+  /api/v1/users/:
+    get:
+      tags: [users]
+      summary: List all users
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              example:
+                - id: 1
+                  email: "admin@rmg.com"
+                  username: "admin"
+                  full_name: "System Admin"
+                  department: "IT"
+                  designation: "Administrator"
+                  department_access: ["all"]
+                  is_active: true
+                  is_superuser: true
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [users]
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              email: "merchandiser@rmg.com"
+              username: "merchandiser1"
+              full_name: "John Merchandiser"
+              department: "Merchandising"
+              designation: "Senior Merchandiser"
+              department_access: ["samples", "orders", "buyers"]
+              password: "SecurePass123"
+      responses:
+        '201':
+          description: User created
+
+  /api/v1/users/{user_id}:
+    get:
+      tags: [users]
+      summary: Get user by ID
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: User details
+        '404': { description: Not found }
+    put:
+      tags: [users]
+      summary: Update user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              full_name: "Senior Admin"
+              designation: "IT Manager"
+              is_active: true
+      responses:
+        '200':
+          description: User updated
+    delete:
+      tags: [users]
+      summary: Delete user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ OPERATIONS ============
+  /api/v1/operations/:
+    get:
+      tags: [operations]
+      summary: List operations master
+      responses:
+        '200':
+          description: List of operations
+          content:
+            application/json:
+              example:
+                - operation_id: 1
+                  operation_name: "Body Knitting"
+                  operation_code: "BK"
+                  sam: 15.0
+                - operation_id: 2
+                  operation_name: "Collar Linking"
+                  operation_code: "CL"
+                  sam: 5.5
+
+  /api/v1/operations/smv-settings:
+    get:
+      tags: [operations]
+      summary: Get SMV settings
+      responses:
+        '200':
+          description: SMV settings
+          content:
+            application/json:
+              example:
+                - setting_id: 1
+                  setting_name: "Standard Allowance"
+                  value: 15.0
+                  unit: "percent"
+                - setting_id: 2
+                  setting_name: "Personal Allowance"
+                  value: 5.0
+                  unit: "percent"
+
+  # ============ MASTER DATA - COLORS ============
+  /api/v1/master/colors:
+    get:
+      tags: [master-data]
+      summary: List all colors
+      responses:
+        '200':
+          description: List of colors
+          content:
+            application/json:
+              example:
+                - id: 1
+                  color_name: "Navy Blue"
+                  color_code: "NVY-001"
+                  color_ref: "Pantone 19-4026"
+                  category: "Blue"
+                  is_active: true
+                  created_at: "2024-01-01T00:00:00Z"
+                - id: 2
+                  color_name: "Forest Green"
+                  color_code: "FGR-001"
+                  color_ref: "Pantone 18-5718"
+                  category: "Green"
+                  is_active: true
+                  created_at: "2024-01-01T00:00:00Z"
+    post:
+      tags: [master-data]
+      summary: Create color
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              color_name: "Burgundy"
+              color_code: "BRG-001"
+              color_ref: "Pantone 19-1617"
+              category: "Red"
+              is_active: true
+      responses:
+        '201':
+          description: Color created
+
+  /api/v1/master/colors/{color_id}:
+    get:
+      tags: [master-data]
+      summary: Get color by ID
+      parameters:
+        - name: color_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Color details
+        '404': { description: Not found }
+    put:
+      tags: [master-data]
+      summary: Update color
+      parameters:
+        - name: color_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              color_name: "Dark Navy"
+              is_active: true
+      responses:
+        '200':
+          description: Color updated
+    delete:
+      tags: [master-data]
+      summary: Delete color
+      parameters:
+        - name: color_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ MASTER DATA - SIZES ============
+  /api/v1/master/sizes:
+    get:
+      tags: [master-data]
+      summary: List all sizes
+      responses:
+        '200':
+          description: List of sizes
+          content:
+            application/json:
+              example:
+                - id: 1
+                  size_value: "S"
+                  size_label: "Small"
+                  size_category: "Adult"
+                  sort_order: 1
+                  is_active: true
+                  created_at: "2024-01-01T00:00:00Z"
+                - id: 2
+                  size_value: "M"
+                  size_label: "Medium"
+                  size_category: "Adult"
+                  sort_order: 2
+                  is_active: true
+                - id: 3
+                  size_value: "L"
+                  size_label: "Large"
+                  size_category: "Adult"
+                  sort_order: 3
+                  is_active: true
+    post:
+      tags: [master-data]
+      summary: Create size
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              size_value: "XXL"
+              size_label: "Extra Extra Large"
+              size_category: "Adult"
+              sort_order: 5
+              is_active: true
+      responses:
+        '201':
+          description: Size created
+
+  /api/v1/master/sizes/{size_id}:
+    get:
+      tags: [master-data]
+      summary: Get size by ID
+      parameters:
+        - name: size_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Size details
+        '404': { description: Not found }
+    put:
+      tags: [master-data]
+      summary: Update size
+      parameters:
+        - name: size_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example:
+              size_label: "Small (US)"
+              is_active: true
+      responses:
+        '200':
+          description: Size updated
+    delete:
+      tags: [master-data]
+      summary: Delete size
+      parameters:
+        - name: size_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204': { description: Deleted }
+
+  # ============ MERCHANDISER ============
+  /api/v1/merchandiser/:
+    get:
+      tags: [merchandiser]
+      summary: Merchandiser module info (placeholder)
+      responses:
+        '200':
+          description: Module info
+          content:
+            application/json:
+              example:
+                module: "merchandiser"
+                status: "placeholder"
+                description: "Merchandiser department module - coming soon"
+                features: []
+
+  # ============ HEALTH ============
+  /api/v1/health:
+    get:
+      tags: [health]
+      summary: Health check - all database connections
+      responses:
+        '200':
+          description: All healthy
+          content:
+            application/json:
+              example:
+                status: "healthy"
+                databases:
+                  clients:
+                    status: "connected"
+                  samples:
+                    status: "connected"
+                  users:
+                    status: "connected"
+                  orders:
+                    status: "connected"
+                  merchandiser:
+                    status: "connected"
+        '503':
+          description: Service unavailable
+
+  /api/v1/ready:
+    get:
+      tags: [health]
+      summary: Readiness check
+      responses:
+        '200':
+          description: Ready
+          content:
+            application/json:
+              example:
+                status: "ready"
+                timestamp: "2024-01-15T10:30:00Z"
+        '503':
+          description: Not ready

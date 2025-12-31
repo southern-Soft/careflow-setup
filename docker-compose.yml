@@ -1,0 +1,112 @@
+services:
+  # IOT_users Database
+  db-users:
+    image: postgres:15-alpine
+    container_name: IOT_users
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: IOT_users
+    volumes:
+      - IOT_users_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d IOT_users"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - IOT_network
+
+  # IOT orders Database
+  db-orders:
+    image: postgres:15-alpine
+    container_name: IOT_orders
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: IOT_orders
+    volumes:
+      - IOT_orders_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d IOT_orders"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - IOT_network
+
+
+  # Backend FastAPI Application
+  backend:  # Matches your working backend compose name
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: IOT_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # PostgreSQL Base Settings
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_PORT=5432
+      # Multi-Database Host Configuration
+      - POSTGRES_HOST_USERS=db-users
+      - POSTGRES_HOST_ORDERS=db-orders
+
+      # Multi-Database Names
+      - POSTGRES_DB_USERS=IOT_users
+      - POSTGRES_DB_ORDERS=IOT_orders
+
+      # Security & App
+      - SECRET_KEY=QhFvFi5uBqv1DVuFv7jK2B8Cw4mM8Szi0Z9vLZ9cKPY
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=10080
+      - CORS_ORIGINS=*
+      - ENVIRONMENT=production
+    depends_on:
+      db-users:
+        condition: service_healthy
+      db-orders:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - IOT_network
+
+  # Frontend Next.js App
+  frontend:
+    build:
+      context: ./frontend-sales
+      dockerfile: Dockerfile
+    container_name: IOT_frontend_sales
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      #- NEXT_PUBLIC_BACKEND_URL=http://backend:8000  # Points to backend service
+      # Add any other frontend env vars if needed, e.g.:
+      # - NEXT_PUBLIC_API_BASE_URL=http://backend:8000/api/v1
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - IOT_network
+
+networks:
+  IOT_network:
+    driver: bridge
+
+volumes:
+  IOT_users_data:
+  IOT_orders_data:
