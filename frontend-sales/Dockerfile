@@ -26,9 +26,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-EXPOSE 1678
+EXPOSE 1677
 
-ENV PORT=1678
+ENV PORT=1677
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]

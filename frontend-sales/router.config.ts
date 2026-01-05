@@ -42,12 +42,12 @@ export const LINKS = {
 export const PATHS = {
   // Authentication
   AUTH: {
-    LOGIN: () => ({ root: "/auth/login/" as const }),
-    LOGOUT: () => ({ root: "/auth/logout/" as const }),
-    REGISTER: () => ({ root: "/auth/register/" as const }),
-    ME: () => ({ root: "/auth/me/" as const }),
-    FORGOT_PASSWORD: () => ({ root: "/auth/forgot-password/" as const }),
-    RESET_PASSWORD: () => ({ root: "/auth/reset-password/" as const }),
+    LOGIN: () => ({ root: "/auth/login" as const }),
+    LOGOUT: () => ({ root: "/auth/logout" as const }),
+    REGISTER: () => ({ root: "/auth/register" as const }),
+    ME: () => ({ root: "/auth/me" as const }),
+    FORGOT_PASSWORD: () => ({ root: "/auth/forgot-password" as const }),
+    RESET_PASSWORD: () => ({ root: "/auth/reset-password" as const }),
   } as const,
 
   // Users
@@ -55,10 +55,10 @@ export const PATHS = {
     LIST: (limit?: number) => ({
       root: `/users/?limit=${limit || API_LIMITS.DEFAULT}` as const,
     }),
-    DETAIL: (id: number) => ({ root: `/users/${id}/` as const }),
-    CREATE: () => ({ root: "/users/" as const }),
-    UPDATE: (id: number) => ({ root: `/users/${id}/` as const }),
-    DELETE: (id: number) => ({ root: `/users/${id}/` as const }),
+    DETAIL: (id: number) => ({ root: `/users/${id}` as const }),
+    CREATE: () => ({ root: "/users" as const }),
+    UPDATE: (id: number) => ({ root: `/users/${id}` as const }),
+    DELETE: (id: number) => ({ root: `/users/${id}` as const }),
   } as const,
 
   // Orders
@@ -66,10 +66,10 @@ export const PATHS = {
     LIST: (limit?: number) => ({
       root: `/orders/?limit=${limit || API_LIMITS.DEFAULT}` as const,
     }),
-    DETAIL: (id: number) => ({ root: `/orders/${id}/` as const }),
-    CREATE: () => ({ root: "/orders/" as const }),
-    UPDATE: (id: number) => ({ root: `/orders/${id}/` as const }),
-    DELETE: (id: number) => ({ root: `/orders/${id}/` as const }),
+    DETAIL: (id: number) => ({ root: `/orders/${id}` as const }),
+    CREATE: () => ({ root: "/orders" as const }),
+    UPDATE: (id: number) => ({ root: `/orders/${id}` as const }),
+    DELETE: (id: number) => ({ root: `/orders/${id}` as const }),
   } as const,
 
   // Clients
@@ -77,10 +77,10 @@ export const PATHS = {
     LIST: (limit?: number) => ({
       root: `/clients/?limit=${limit || API_LIMITS.DEFAULT}` as const,
     }),
-    DETAIL: (id: number) => ({ root: `/clients/${id}/` as const }),
-    CREATE: () => ({ root: "/clients/" as const }),
-    UPDATE: (id: number) => ({ root: `/clients/${id}/` as const }),
-    DELETE: (id: number) => ({ root: `/clients/${id}/` as const }),
+    DETAIL: (id: number) => ({ root: `/clients/${id}` as const }),
+    CREATE: () => ({ root: "/clients" as const }),
+    UPDATE: (id: number) => ({ root: `/clients/${id}` as const }),
+    DELETE: (id: number) => ({ root: `/clients/${id}` as const }),
   } as const,
 
   // Master Data
@@ -89,17 +89,17 @@ export const PATHS = {
       LIST: (category?: string) => ({
         root: `/master/colors/${category ? `?category=${category}&` : "?"}is_active=true` as const,
       }),
-      DETAIL: (id: number) => ({ root: `/master/colors/${id}/` as const }),
-      CREATE: () => ({ root: "/master/colors/" as const }),
-      UPDATE: (id: number) => ({ root: `/master/colors/${id}/` as const }),
-      DELETE: (id: number) => ({ root: `/master/colors/${id}/` as const }),
-      SEED_DEFAULTS: () => ({ root: "/master/seed-defaults/" as const }),
+      DETAIL: (id: number) => ({ root: `/master/colors/${id}` as const }),
+      CREATE: () => ({ root: "/master/colors" as const }),
+      UPDATE: (id: number) => ({ root: `/master/colors/${id}` as const }),
+      DELETE: (id: number) => ({ root: `/master/colors/${id}` as const }),
+      SEED_DEFAULTS: () => ({ root: "/master/seed-defaults" as const }),
     } as const,
   } as const,
   // Reports
   REPORTS: {
-    DASHBOARD: () => ({ root: "/reports/dashboard/" as const }),
-    EXPORT: (type: string) => ({ root: `/reports/export/${type}/` as const }),
+    DASHBOARD: () => ({ root: "/reports/dashboard" as const }),
+    EXPORT: (type: string) => ({ root: `/reports/export/${type}` as const }),
   } as const,
 
 } as const;

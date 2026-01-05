@@ -15,6 +15,10 @@ class DatabaseType(Enum):
     """Database type enum for multi-database architecture"""
     USERS = "users"
     ORDERS = "orders"
+    CLIENTS = "clients"
+    USERS_IMPLEMENTATION ="users-implementation"
+    END_DEVICE ="end-device"
+    GATEWAY = "gateway"
 
 
 
@@ -35,6 +39,11 @@ engines = {
 
     DatabaseType.USERS: create_engine(settings.DATABASE_URL_USERS, **POOL_SETTINGS),
     DatabaseType.ORDERS: create_engine(settings.DATABASE_URL_ORDERS, **POOL_SETTINGS),
+    DatabaseType.CLIENTS: create_engine(settings.DATABASE_URL_CLIENTS, **POOL_SETTINGS),
+
+    DatabaseType.USERS_IMPLEMENTATION: create_engine(settings.DATABASE_URL_USERS_IMPLEMENTATION, **POOL_SETTINGS),
+    DatabaseType.END_DEVICE: create_engine(settings.DATABASE_URL_END_DEVICE, **POOL_SETTINGS),
+    DatabaseType.GATEWAY: create_engine(settings.DATABASE_URL_GATEWAY, **POOL_SETTINGS),
 
 }
 
@@ -42,12 +51,21 @@ engines = {
 
 SessionLocalUsers = sessionmaker(autocommit=False, autoflush=False, bind=engines[DatabaseType.USERS])
 SessionLocalOrders = sessionmaker(autocommit=False, autoflush=False, bind=engines[DatabaseType.ORDERS])
+SessionLocalClients = sessionmaker(autocommit=False, autoflush=False, bind=engines[DatabaseType.CLIENTS])
+
+SessionLocalUsersImplementation = sessionmaker(autocommit=False, autoflush=False, bind=engines[DatabaseType.USERS_IMPLEMENTATION])
+SessionLocalEndDevice = sessionmaker(autocommit=False, autoflush=False, bind=engines[DatabaseType.END_DEVICE])
+SessionLocalGateway = sessionmaker(autocommit=False, autoflush=False, bind=engines[DatabaseType.GATEWAY])
 
 
 # Create separate Base classes for each database
 
 BaseUsers = declarative_base()
 BaseOrders = declarative_base()
+BaseClients = declarative_base()
+BaseUsersImplementation = declarative_base()
+BaseEndDevice = declarative_base()
+BaseGateway = declarative_base()
 
 
 # Legacy aliases for backward compatibility
@@ -66,6 +84,13 @@ def get_db_users():
     finally:
         db.close()
 
+def get_db_clients():
+    """Get database session for clients DB"""
+    db = SessionLocalClients()
+    try:
+        yield db
+    finally:
+        db.close()
 
 def get_db_orders():
     """Get database session for orders DB"""
@@ -75,7 +100,30 @@ def get_db_orders():
     finally:
         db.close()
 
+def get_db_users_implementation():
+    """Get database session for orders DB"""
+    db = SessionLocalUsersImplementation()
+    try:
+        yield db
+    finally:
+        db.close()
 
+
+def get_db_end_device():
+    """Get database session for orders DB"""
+    db = SessionLocalEndDevice()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_db_gateway():
+    """Get database session for orders DB"""
+    db = SessionLocalGateway()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 def init_db():
@@ -85,7 +133,11 @@ def init_db():
 
     databases = [
         (DatabaseType.USERS, BaseUsers, "Users"),
+        (DatabaseType.CLIENTS, BaseClients, "Clients"),
         (DatabaseType.ORDERS, BaseOrders, "Orders"),
+        (DatabaseType.USERS_IMPLEMENTATION, BaseUsersImplementation, "Users_implementation"),
+        (DatabaseType.END_DEVICE, BaseEndDevice, "End-device"),
+        (DatabaseType.GATEWAY, BaseGateway, "Gateway"),
     ]
 
     for db_type, base_class, db_name in databases:

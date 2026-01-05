@@ -1,4 +1,66 @@
 services:
+  # IOT_users_implementation Database
+  db-users-implementation:
+    image: postgres:15-alpine
+    container_name: IOT_users_implementation
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: IOT_users_implementation
+    volumes:
+      - IOT_users_implementation_data:/var/lib/postgresql/data
+    ports:
+      - "${USERS_IMPLEMENTATION_DB_PORT}:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d IOT_users_implementation" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - IOT_network
+  # IOT_end-device Database
+  db-end-device:
+    image: postgres:15-alpine
+    container_name: IOT_end_device
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: IOT_end_device
+    volumes:
+      - IOT_end_device_data:/var/lib/postgresql/data
+    ports:
+      - "${END_DEVICE_DB_PORT}:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d IOT_end_device" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - IOT_network
+  
+  # IOT_gateway Database
+  db-gateway:
+    image: postgres:15-alpine
+    container_name: IOT_gateway
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: IOT_gateway
+    volumes:
+      - IOT_gateway_data:/var/lib/postgresql/data
+    ports:
+      - "${GATEWAY_DB_PORT}:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d IOT_Gateway" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - IOT_network
+
   # IOT_users Database
   db-users:
     image: postgres:15-alpine
@@ -41,6 +103,27 @@ services:
     networks:
       - IOT_network
 
+  # IOT_clients Database
+  db-clients:
+    image: postgres:15-alpine
+    container_name: IOT_clients
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: IOT_clients
+    volumes:
+      - IOT_clients_data:/var/lib/postgresql/data
+    ports:
+      - "${CLIENTS_DB_PORT}:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d IOT_clients" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - IOT_network
+
   # Backend FastAPI Application
   backend:
     # Matches your working backend compose name
@@ -49,6 +132,8 @@ services:
       dockerfile: Dockerfile
     container_name: IOT_backend
     restart: unless-stopped
+    volumes:
+      - ./backend:/app
     ports:
       - "${BACKEND_PORT}:1679"
     environment:
@@ -59,10 +144,18 @@ services:
       # Multi-Database Host Configuration
       - POSTGRES_HOST_USERS=${POSTGRES_HOST_USERS}
       - POSTGRES_HOST_ORDERS=${POSTGRES_HOST_ORDERS}
+      - POSTGRES_HOST_USERS_IMPLEMENTATION=${POSTGRES_HOST_USERS_IMPLEMENTATION}
+      - POSTGRES_HOST_END_DEVICE=${POSTGRES_HOST_END_DEVICE}
+      - POSTGRES_HOST_GATEWAY=${POSTGRES_HOST_GATEWAY}
+      - POSTGRES_HOST_CLIENTS=${POSTGRES_HOST_CLIENTS}
 
       # Multi-Database Names
       - POSTGRES_DB_USERS=${POSTGRES_DB_USERS}
       - POSTGRES_DB_ORDERS=${POSTGRES_DB_ORDERS}
+      - POSTGRES_DB_USERS_IMPLEMENTATION=${POSTGRES_DB_USERS_IMPLEMENTATION}
+      - POSTGRES_DB_END_DEVICE=${POSTGRES_DB_END_DEVICE}
+      - POSTGRES_DB_GATEWAY=${POSTGRES_DB_GATEWAY}
+      - POSTGRES_DB_CLIENTS=${POSTGRES_DB_CLIENTS}  
 
       # Security & App
       - SECRET_KEY=${SECRET_KEY}
@@ -94,7 +187,25 @@ services:
     container_name: IOT_frontend_sales
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT}:1678"
+      - "${FRONTEND_SALES_PORT}:1678"
+    environment:
+      - BACKEND_URL=http://backend:1679
+      - API_URL=http://backend:1679
+      - NEXT_PUBLIC_USER_COOKIE=${NEXT_PUBLIC_USER_COOKIE}
+      - PORT=1678
+    depends_on:
+      - backend
+    networks:
+      - IOT_network
+
+  frontend-implementation:
+    build:
+      context: ./frontend-implementation
+      dockerfile: Dockerfile
+    container_name: IOT_frontend_implementation
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_IMPLEMENTATION_PORT}:1678"
     environment:
       - BACKEND_URL=http://backend:1679
       - API_URL=http://backend:1679
@@ -111,4 +222,8 @@ networks:
 
 volumes:
   IOT_users_data:
+  IOT_clients_data:
   IOT_orders_data:
+  IOT_users_implementation_data:
+  IOT_end_device_data:
+  IOT_gateway_data:

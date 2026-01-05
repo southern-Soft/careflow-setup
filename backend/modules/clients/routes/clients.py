@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 from datetime import datetime
-from core.database import get_db_orders
+from core.database import get_db_clients
 from core.logging import setup_logging
 from modules.clients.models.client import Client
 from modules.clients.schemas.client import ClientCreate, Client as ClientSchema, ClientUpdate
@@ -32,7 +32,7 @@ def generate_client_id(db: Session):
     return f"{prefix}{new_number:04d}"
 
 @router.post("/", response_model=ClientSchema, status_code=status.HTTP_201_CREATED)
-def create_client(client_data: ClientCreate, db: Session = Depends(get_db_orders)):
+def create_client(client_data: ClientCreate, db: Session = Depends(get_db_clients)):
     """Create a new client with auto-generated ID"""
     try:
         client_ID = generate_client_id(db)
@@ -59,13 +59,13 @@ def create_client(client_data: ClientCreate, db: Session = Depends(get_db_orders
         )
 
 @router.get("/", response_model=List[ClientSchema])
-def get_clients(skip: int = 0, limit: int = 10000, db: Session = Depends(get_db_orders)):
+def get_clients(skip: int = 0, limit: int = 10000, db: Session = Depends(get_db_clients)):
     """Get all clients"""
     clients = db.query(Client).order_by(Client.id.desc()).offset(skip).limit(limit).all()
     return clients
 
 @router.get("/{id}", response_model=ClientSchema)
-def get_client(id: int, db: Session = Depends(get_db_orders)):
+def get_client(id: int, db: Session = Depends(get_db_clients)):
     """Get a specific client by internal ID"""
     client = db.query(Client).filter(Client.id == id).first()
     if not client:
@@ -73,7 +73,7 @@ def get_client(id: int, db: Session = Depends(get_db_orders)):
     return client
 
 @router.put("/{id}", response_model=ClientSchema)
-def update_client(id: int, client_data: ClientUpdate, db: Session = Depends(get_db_orders)):
+def update_client(id: int, client_data: ClientUpdate, db: Session = Depends(get_db_clients)):
     """Update a client"""
     try:
         client = db.query(Client).filter(Client.id == id).first()
@@ -96,7 +96,7 @@ def update_client(id: int, client_data: ClientUpdate, db: Session = Depends(get_
         )
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_client(id: int, db: Session = Depends(get_db_orders)):
+def delete_client(id: int, db: Session = Depends(get_db_clients)):
     """Delete a client"""
     try:
         client = db.query(Client).filter(Client.id == id).first()

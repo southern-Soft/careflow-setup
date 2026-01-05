@@ -9,20 +9,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def init_sample_data(db: Session):
+def init_admin_user(db: Session, user_model=User):
     """Initialize database with admin user only"""
     try:
         # Check if admin user already exists
-        existing_user = db.query(User).first()
+        existing_user = db.query(user_model).filter(user_model.username == "admin").first()
         if existing_user:
-            logger.info("Admin user already exists, skipping initialization")
+            logger.info(f"Admin user already exists in {db.bind.url.database}, skipping initialization")
             return
 
-        logger.info("Creating admin user...")
+        logger.info(f"Creating admin user in {db.bind.url.database}...")
 
         # Create admin user
-        admin_user = User(
-            email="admin@rmgerp.com",
+        admin_user = user_model(
+            email="admin@rmgiot.com",
             username="admin",
             hashed_password=get_password_hash("admin"),
             full_name="System Administrator",
@@ -34,11 +34,9 @@ def init_sample_data(db: Session):
         db.add(admin_user)
 
         db.commit()
-        logger.info("Admin user created successfully!")
-        logger.info("Default login credentials:")
-        logger.info("  Username: admin | Password: admin")
+        logger.info(f"Admin user created successfully in {db.bind.url.database}!")
 
     except Exception as e:
-        logger.error(f"Error creating admin user: {e}")
+        logger.error(f"Error creating admin user in {db.bind.url.database}: {e}")
         db.rollback()
         raise
